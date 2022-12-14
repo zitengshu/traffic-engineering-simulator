@@ -2,6 +2,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import matplotlib.pyplot as plt
 import json
+import random
 
 def get_flow_labels(graph: nx.Graph, flow_dict: dict) -> dict:
   labels = {}
@@ -11,7 +12,7 @@ def get_flow_labels(graph: nx.Graph, flow_dict: dict) -> dict:
       if flow > 0:
         labels[(from_node,to_node)] = f"{flow}/{graph.edges[from_node, to_node]['capacity']}"
         flow_attributes[(from_node,to_node)] = flow
-  nx.set_edge_attributes(G, flow_attributes, "flow")
+  nx.set_edge_attributes(graph, flow_attributes, "flow")
   return labels
 
 def draw_theoretical_traffic(graph: nx.Graph, labels: dict, image_name: str) -> None:
@@ -26,20 +27,34 @@ def save_graph(graph: nx.Graph, filename: str) -> None:
   with open(filename, "w") as f:
     f.write(s)
 
+def gen_clos(graph: nx.Graph, num_server: int, num_leaf: int, num_spine: int, num_server_per_leaf: int, capacity_list: list, num_source: int, num_sink: int) -> None:
+  server_list = [f"server{i}" for i in range(num_server)]
+  leaf_list = [f"leaf{i}" for i in range(num_leaf)]
+  spine_list = [f"spine{i}" for i in range(num_spine)]
+  for spine in spine_list:
+    for leaf in leaf_list:
+      graph.add_edge(leaf, spine, capacity=random.sample(capacity_list, 1)[0])
+  i = 0
+  j = 0
+  while i < num_server:
+    graph.add_edge(server_list[i], leaf_list[j], capacity=random.sample(capacity_list, 1)[0])
+    i += 1
+    if i % num_server_per_leaf == 0:
+      j += 1
+  
+  sample_list = random.sample(server_list, num_source + num_sink)
+  for source in sample_list[:num_source]:
+    graph.add_edge("source", source, capacity=float('inf'))
+  for sink in sample_list[num_source:]:
+    graph.add_edge(sink, "sink", capacity=float('inf'))
+  return
 
 if __name__ == '__main__':
-  G = nx.Graph()
-  G.add_edge("x", "a", capacity=3.0)
-  G.add_edge("x", "b", capacity=1.0)
-  G.add_edge("a", "c", capacity=3.0)
-  G.add_edge("b", "c", capacity=5.0)
-  G.add_edge("b", "d", capacity=4.0)
-  G.add_edge("d", "e", capacity=2.0)
-  G.add_edge("c", "y", capacity=2.0)
-  G.add_edge("e", "y", capacity=3.0)
+  graph = nx.Graph()
+  gen_clos(graph, 16, 8, 4, 2, [5, 10, 20, 40, 100, 200], 4, 2)
   
-  flow_value, flow_dict = nx.maximum_flow(G, "x", "y")
+  flow_value, flow_dict = nx.maximum_flow(graph, "source", "sink")
 
-  labels = get_flow_labels(G, flow_dict)
-  draw_theoretical_traffic(G, labels, "theoretical-traffic.png")
-  save_graph(G, "TE-graph.json")
+  labels = get_flow_labels(graph, flow_dict)
+  draw_theoretical_traffic(graph, labels, "theoretical-traffic.png")
+  save_graph(graph, "TE-graph.json")
