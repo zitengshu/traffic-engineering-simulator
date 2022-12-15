@@ -60,7 +60,50 @@ def gen_clos(graph: nx.Graph, num_server: int, num_leaf: int, num_spine: int, nu
     graph.add_edge("source", source, capacity=float('inf'))
   for sink in sample_list[num_source:]:
     graph.add_edge(sink, "sink", capacity=float('inf'))
-  return
+
+def prefix_sum(i:int)->float:
+  sum = 0.0
+  for j in range(i):
+    sum += j*0.1*(1 - 2 * (j%2))
+  return sum
+
+def gen_direct_connect(graph: nx.Graph, num_server: int, num_leaf: int, num_spine: int, num_server_per_leaf: int, capacity_list: list, block2block_capacity_list: list, num_source: int, num_sink: int):
+  server_list = [f"server{i}" for i in range(num_server)]
+  leaf_list = [f"leaf{i}" for i in range(num_leaf)]
+  spine_list = [f"spine{i}" for i in range(num_spine)]
+
+  for i in range(num_server):
+    graph.add_node(server_list[i], pos=(2*i, 2))
+
+  for i in range(num_leaf):
+    graph.add_node(leaf_list[i], pos=(4*i+1, 6+i*prefix_sum(i)))
+  
+  for i in range(num_spine):
+    graph.add_node(spine_list[i], pos=(8*i+2, 15))
+
+  graph.add_node("source", pos=(0,0))
+  graph.add_node("sink", pos=(2*num_server,0))
+  for spine in spine_list:
+    for leaf in leaf_list:
+      graph.add_edge(leaf, spine, capacity=random.sample(capacity_list, 1)[0])
+  i = 0
+  j = 0
+  while i < num_server:
+    graph.add_edge(server_list[i], leaf_list[j], capacity=random.sample(capacity_list, 1)[0])
+    i += 1
+    if i % num_server_per_leaf == 0:
+      j += 1
+  
+  for i in range(num_leaf-1):
+    for j in range(i+1, num_leaf):
+      graph.add_edge(leaf_list[i], leaf_list[j], capacity=random.sample(block2block_capacity_list, 1)[0])
+
+  sample_list = random.sample(server_list, num_source + num_sink)
+  for source in sample_list[:num_source]:
+    graph.add_edge("source", source, capacity=float('inf'))
+  for sink in sample_list[num_source:]:
+    graph.add_edge(sink, "sink", capacity=float('inf'))
+
 
 def clos_example() -> None:
   graph = nx.Graph()
@@ -73,5 +116,16 @@ def clos_example() -> None:
   save_graph(graph, "TE-graph-clos.json")
   print(f"theoretical maximum flow is {flow_value}")
 
+def block2block_example() -> None:
+  graph = nx.Graph()
+  gen_direct_connect(graph, 16, 8, 4, 2, [5, 10, 20, 40, 100, 200], [0, 128, 256, 384], 5, 5)
+  
+  flow_value, flow_dict = nx.maximum_flow(graph, "source", "sink")
+
+  labels = get_flow_labels(graph, flow_dict)
+  draw_theoretical_traffic(graph, labels, "theoretical-traffic-block2block.png")
+  save_graph(graph, "TE-graph-block2block.json")
+  print(f"theoretical maximum flow is {flow_value}")
+
 if __name__ == '__main__':
-  print("main")
+  print("hello")
