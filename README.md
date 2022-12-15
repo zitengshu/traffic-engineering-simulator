@@ -60,11 +60,11 @@ Output graph is in [Cytoscape](https://manual.cytoscape.org/en/stable/index.html
 
 ### Clos
 
-![theoretical-traffic-clos](../example/theoretical-traffic-clos.png)
+![theoretical-traffic-clos](example/theoretical-traffic-clos.png)
 
 ### Block-to-Block
 
-![theoretical-traffic-block2block](../example/theoretical-traffic-block2block.png)
+![theoretical-traffic-block2block](example/theoretical-traffic-block2block.png)
 
 
 
