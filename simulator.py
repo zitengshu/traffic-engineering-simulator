@@ -6,6 +6,7 @@ import random
 import argparse
 from yaml import load, Loader
 import os
+from datetime import datetime
 
 def get_flow_labels(graph: nx.Graph, flow_dict: dict) -> dict:
   labels = {}
@@ -130,7 +131,7 @@ def block2block_example() -> None:
   save_graph(graph, "TE-graph-block2block.json")
   print(f"Theoretical maximum flow is {flow_value}")
 
-if __name__ == '__main__':
+def cmd() -> None:
   parser = argparse.ArgumentParser(
                     prog = 'Traffic-Engineering-Simulator',
                     description = 'This simulator generates demand data center network topology and traffic allocation.')
@@ -176,7 +177,33 @@ if __name__ == '__main__':
   
   flow_value, flow_dict = nx.maximum_flow(graph, "source", "sink")
   labels = get_flow_labels(graph, flow_dict)
-  if draw_graph == 'True':
+  if draw_graph == True:
     draw_theoretical_traffic(graph, labels, f"theoretical-traffic-{topo}.png")
   save_graph(graph, f"TE-graph-{topo}.json")
   print(f"Theoretical maximum flow is {flow_value}")
+
+def benchmark_func(num_server: int) -> float:
+  start = datetime.now()
+  graph = nx.Graph()
+  half = num_server//2
+  gen_clos(graph, num_server, half, half//2, 2, [0, 10, 20, 40, 80, 100, 200, 400], half, half)
+  flow_value, flow_dict = nx.maximum_flow(graph, "source", "sink")
+  labels = get_flow_labels(graph, flow_dict)
+  end = datetime.now()
+  return (end - start).total_seconds()
+
+def benchmark() -> None:
+  num_server_list = [2**n for n in range(2, 15)]
+  time_list = []
+  for num_server in num_server_list:
+    t = benchmark_func(num_server)
+    time_list.append(t)
+    print(num_server, t)
+  plt.plot(num_server_list, time_list)
+  plt.title('Benchmark Test(Runing Time)')
+  plt.xlabel('Number of Servers')
+  plt.ylabel('Second')
+  plt.savefig("Benchmark.png")
+
+if __name__ == '__main__':
+  cmd()
