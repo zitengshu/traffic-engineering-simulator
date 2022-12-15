@@ -75,3 +75,8 @@ Output graph is in [Cytoscape](https://manual.cytoscape.org/en/stable/index.html
 | -e, --example  | support `clos`, `block2block` |
 | -f, --filepath | Path to the input YAML file   |
 
+
+
+## Benchmark
+
+![Benchmark](example/Benchmark.png)
