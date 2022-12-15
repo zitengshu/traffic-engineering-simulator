@@ -3,6 +3,9 @@ from networkx.readwrite import json_graph
 import matplotlib.pyplot as plt
 import json
 import random
+import argparse
+from yaml import load, Loader
+import os
 
 def get_flow_labels(graph: nx.Graph, flow_dict: dict) -> dict:
   labels = {}
@@ -23,7 +26,7 @@ def draw_theoretical_traffic(graph: nx.Graph, labels: dict, image_name: str) -> 
   plt.savefig(image_name)
 
 def save_graph(graph: nx.Graph, filename: str) -> None:
-  data = json_graph.adjacency_data(graph)
+  data = json_graph.cytoscape_data(graph)
   s = json.dumps(data)
   with open(filename, "w") as f:
     f.write(s)
@@ -114,7 +117,7 @@ def clos_example() -> None:
   labels = get_flow_labels(graph, flow_dict)
   draw_theoretical_traffic(graph, labels, "theoretical-traffic-clos.png")
   save_graph(graph, "TE-graph-clos.json")
-  print(f"theoretical maximum flow is {flow_value}")
+  print(f"Theoretical maximum flow is {flow_value}")
 
 def block2block_example() -> None:
   graph = nx.Graph()
@@ -125,7 +128,55 @@ def block2block_example() -> None:
   labels = get_flow_labels(graph, flow_dict)
   draw_theoretical_traffic(graph, labels, "theoretical-traffic-block2block.png")
   save_graph(graph, "TE-graph-block2block.json")
-  print(f"theoretical maximum flow is {flow_value}")
+  print(f"Theoretical maximum flow is {flow_value}")
 
 if __name__ == '__main__':
-  print("hello")
+  parser = argparse.ArgumentParser(
+                    prog = 'Traffic-Engineering-Simulator',
+                    description = 'This simulator generates demand data center network topology and traffic allocation.')
+  parser.add_argument('-e', '--example')
+  parser.add_argument('-f', '--filepath')
+  args = parser.parse_args()
+  if args.example == "clos":
+    clos_example()
+    exit(0)
+  elif args.example == "block2block":
+    block2block_example()
+    exit(0)
+  elif args.example == None:
+    pass
+  else:
+    print(f"[ERROR] No such example: {args.example}")
+    exit(0)
+  
+  filepath = args.filepath
+  if not os.path.isfile(filepath):
+    print(f"[ERROR] Cannot find: {filepath}")
+
+  graph = nx.Graph()
+  
+  file = open(filepath, 'r')
+  stream = file.read()
+  file.close()
+  data = load(stream, Loader=Loader)
+  topo = data['topology']
+  num_server = data['numberOfServer']
+  num_leaf = data['numberOfLeaf']
+  num_spine = data['numberOfSpine']
+  num_server_per_leaf = data['numberOfServersPerLeaf']
+  capacity_list = data['capacityList']
+  b2b_cap_list = data['block2blockCapacityList']
+  num_source = data['numberOfSource']
+  num_sink = data['numberofSink']
+  draw_graph = data['drawGraph']
+  if topo == 'clos':
+    gen_clos(graph, num_server, num_leaf, num_spine, num_server_per_leaf, capacity_list, num_source, num_sink)
+  elif topo == 'block2block':
+    gen_direct_connect(graph, num_server, num_leaf, num_spine, num_server_per_leaf, capacity_list, b2b_cap_list, num_source, num_sink)
+  
+  flow_value, flow_dict = nx.maximum_flow(graph, "source", "sink")
+  labels = get_flow_labels(graph, flow_dict)
+  if draw_graph == 'True':
+    draw_theoretical_traffic(graph, labels, f"theoretical-traffic-{topo}.png")
+  save_graph(graph, f"TE-graph-{topo}.json")
+  print(f"Theoretical maximum flow is {flow_value}")

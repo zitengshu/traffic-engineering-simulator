@@ -1,0 +1,10 @@
+topology: block2block
+numberOfServer: 16
+numberOfLeaf: 8
+numberOfSpine: 4
+numberOfServersPerLeaf: 2
+capacityList: [0, 10, 20, 40, 100, 200, 400]
+numberOfSource: 10
+numberofSink: 6
+block2blockCapacityList: [0, 128, 256, 384]
+drawGraph: True
